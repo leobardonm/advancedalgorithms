@@ -1,0 +1,123 @@
+Introducción
+
+El problema abordado consiste en planear la carga de un tráiler de ventas sujeto a una restricción de capacidad de peso W. Se dispone de un catálogo de productos, donde cada producto cuenta con un identificador, un peso entero y un valor entero que representa la ganancia esperada. Cada producto puede seleccionarse a lo más una vez.
+
+El objetivo es seleccionar un subconjunto de productos que maximice el valor total sin exceder la capacidad máxima. Este problema corresponde al Knapsack 0/1, un problema NP-completo.
+
+Se implementan y comparan tres enfoques:
+
+Método heurístico Greedy
+
+Método exacto mediante Programación Dinámica
+
+Método exacto basado en Backtracking con Branch-and-Bound
+
+Los métodos se evalúan sobre dos catálogos: C₁ (favorable para heurísticas) y C₂ (diseñado para provocar fallos en greedy).
+
+Método Greedy
+
+Descripción
+
+El método greedy ordena los productos por valor por kilogramo (densidad = v/w) en orden descendente. Los empates se resuelven por menor peso y luego por identificador. Los productos se recorren secuencialmente, agregando cada uno a la selección siempre que su peso no exceda la capacidad restante.
+
+Complejidad
+
+Temporal: O(n log n), debido al ordenamiento O(n log n) seguido de una selección lineal O(n).
+Espacial: O(n), correspondiente a la lista ordenada y la selección final.
+
+Este enfoque es óptimo para el problema de la mochila fraccional, pero no garantiza optimalidad en el caso Knapsack 0/1.
+
+Programación Dinámica
+
+Descripción
+
+Se implementa una solución exacta utilizando un arreglo unidimensional (rolling array). Se define:
+
+dp[w] como el máximo valor alcanzable con una capacidad w.
+
+Para cada producto i con peso wᵢ y valor vᵢ, se actualiza la relación:
+
+dp[w] = max(dp[w], dp[w − wᵢ] + vᵢ)
+
+La iteración sobre la capacidad w se realiza en orden descendente para asegurar que cada producto se utilice a lo más una vez.
+
+Reconstrucción
+
+Se mantiene una estructura auxiliar choice[i][w] que indica si el producto i fue seleccionado para alcanzar el valor dp[w]. La solución óptima se reconstruye recorriendo esta estructura desde la capacidad W hasta cero.
+
+Complejidad
+
+Temporal: O(nW).
+Espacial: O(nW), debido a la estructura necesaria para la reconstrucción de la solución.
+
+Backtracking con Branch-and-Bound
+
+Descripción
+
+El solucionador exacto emplea una estrategia de backtracking con poda mediante branch-and-bound. El procedimiento consta de los siguientes pasos:
+
+Los productos se ordenan por densidad no creciente.
+
+En cada nodo del árbol de búsqueda se exploran dos ramas: incluir o excluir el producto actual.
+
+Se calcula una cota superior optimista utilizando una relajación fraccional del problema de la mochila.
+
+Si la cota superior es menor o igual al mejor valor factible encontrado, el subárbol se poda.
+
+Cálculo de la cota
+
+La cota se obtiene llenando la capacidad restante con productos en orden de densidad, permitiendo fracciones del último producto. Esta cota es admisible, ya que nunca subestima el valor óptimo real.
+
+Complejidad
+
+Temporal: O(n · 2ⁿ) en el peor caso; en la práctica, el tiempo se reduce significativamente gracias a la poda.
+Espacial: O(n), correspondiente a la profundidad máxima de la recursión y a la selección actual.
+
+Configuración Experimental
+
+Se utilizaron los siguientes parámetros experimentales:
+
+Catálogos: C₁ (10 productos) y C₂ (7 productos).
+Capacidades: W ∈ {0, 20, 35, 50, 65, 80, 95, 110, 140}.
+Repeticiones: 5 ejecuciones por combinación de método, catálogo y capacidad.
+Métrica: Tiempo de ejecución mediano en milisegundos.
+Casos límite: W = 0 y W = 5 en C₂, donde todos los productos exceden la capacidad.
+
+Resultados
+
+Se generaron las siguientes gráficas (ver carpeta results/):
+
+Runtime vs Capacity para C₁.
+Runtime vs Capacity para C₂.
+Greedy Value Gap para C₁.
+Greedy Value Gap para C₂.
+
+Caso concreto de fallo en C₂ con W = 50:
+
+Método: Greedy
+Valor: 160
+Items seleccionados: Q10, Q20
+
+Método: Programación Dinámica / Backtracking
+Valor: 220
+Items seleccionados: Q20, Q30
+
+Gap: 60
+
+Análisis: El método greedy selecciona primero Q10 debido a su mayor densidad (6.0), consumiendo capacidad que impide posteriormente incluir Q30. Los métodos exactos identifican que la combinación Q20 y Q30, con peso total 50, produce un valor superior.
+
+Otros fallos observados en C₂:
+
+Para W = 20, Greedy obtiene 60 y el óptimo es 100 (gap de 40).
+Para W = 50, Greedy obtiene 160 y el óptimo es 220 (gap de 60).
+Para W = 65, Greedy obtiene 280 y el óptimo es 290 (gap de 10).
+Para W = 80, Greedy obtiene 280 y el óptimo es 315 (gap de 35).
+Para W = 110, Greedy obtiene 410 y el óptimo es 430 (gap de 20).
+
+Conclusiones
+
+El método greedy ofrece una solución rápida con complejidad O(n log n), adecuada cuando el tiempo de ejecución es crítico. Sin embargo, su naturaleza local impide garantizar soluciones óptimas, como se evidencia en el catálogo C₂.
+
+Los métodos exactos, programación dinámica y backtracking con branch-and-bound, garantizan la obtención de la solución óptima. La programación dinámica presenta una complejidad pseudopolinomial O(nW), mientras que el backtracking puede resultar más eficiente en la práctica gracias a la poda.
+
+La elección del método depende del balance requerido entre velocidad de ejecución y optimalidad de la solución.
