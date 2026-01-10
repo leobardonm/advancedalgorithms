@@ -1,0 +1,70 @@
+1) Problem
+You are planning what a sales trailer should load for a day’s route. The trailer has an integer weight capacity 
+ in kilograms. You are given a product catalog where each product has an identifier, a name, an integer weight 
+ in kilograms, and an integer value 
+ representing expected gross margin units if that product is carried and sold. Each product can be loaded at most once.
+
+Your task is to choose a subset of products that maximizes total value while keeping total weight at or below 
+. All methods you implement must expose the same interface and return both the best achievable value and a concrete selection of product identifiers that achieves that value. If nothing fits (including 
+), return a value of 0 and an empty selection.
+
+Use the following catalogs and capacities for all experiments. Catalog C₁ is a friendly mix where simple heuristics often do well, and Catalog C₂ is deliberately tricky so that heuristics can fail.
+
+Test capacities are 
+. Also include two edge checks: 
+ (must return 0 with no items) and an “all items too heavy” case (e.g., 
+ on C₂, which must also return 0 with no items).
+
+C₁
+
+[("P01","Chips Box",1,6),("P02","Soda Crate",2,11),("P03","Candy Bulk",3,16),
+ ("P04","Water Pack",4,21),("P05","Fruit Crate",5,26),("P06","Ice Cream Bin",6,31),
+ ("P07","BBQ Sauce Case",7,36),("P08","Snack Variety",8,40),
+ ("P09","Cleaning Supplies",9,45),("P10","First-Aid Kits",10,50)]
+C₂
+
+[("Q10","Assorted Gadgets",10,60),("Q20","Party Drinks Pallet",20,100),
+ ("Q30","Outdoor Grill",30,120),("Q35","Mini Freezer",35,130),
+ ("Q40","Tool Chest",40,135),("Q45","Camp Bundle",45,140),
+ ("Q50","Generator",50,150)]
+All methods must use this function signature:
+
+solve_method(products: List[Tuple[id, name, weight, value]],
+             capacity_W: int) -> (best_value: int, chosen_ids: List[id])
+The returned chosen_ids must reconstruct a valid selection that respects the capacity.
+
+2) Methods to Implement
+You will implement three solvers that all follow the interface above and all reconstruct a valid selection.
+
+1. Implement a greedy heuristic that orders products by value-per-kilogram (breaking ties by lighter weight and then identifier) and scans once, taking an item if it fits the remaining capacity.
+
+2. Implement an optimal dynamic program over capacity that enforces “at most once” by processing each item and iterating capacities in descending order; include the bookkeeping required to reconstruct a valid optimal selection.
+
+3. Implement an exact backtracking solver with branch-and-bound: explore items in a fixed non-increasing value-density order, carry the best feasible solution found so far, and prune search branches using an admissible upper bound computed by fractionally “filling” any remaining capacity by density (you may also include any lightweight enhancements that help pruning).
+
+All three methods must return the same type of output; when multiple optimal selections exist, any one is acceptable, but be consistent across runs.
+
+3) Benchmarking Protocol
+For each combination of catalog, capacity, and method, run at least five repetitions and report the median runtime in milliseconds. Ensure that every run’s output selection respects the capacity and that the reported value matches the sum of values for the returned items.
+
+Produce two figures per catalog: a “Runtime vs Capacity” plot with capacities on the x-axis and median runtime on the y-axis (use a logarithmic y-axis if it clarifies trends), and a “Greedy Value Gap vs Capacity” plot with the difference between the best value found by the exact methods and the greedy value on the y-axis.
+
+Your benchmarking must include at least one tested capacity on Catalog C₂ where the greedy heuristic achieves strictly less value than the exact methods, demonstrating a concrete failure case.
+
+4) Theoretical Analysis Requirement
+Your report must include a self-contained section where you derive the time and space complexity of each implemented method using 
+ for the number of products and 
+ for the capacity.
+
+State precisely which dynamic programming variant you implemented (e.g., one-dimensional rolling array or two-dimensional table) and how you reconstruct the chosen set.
+
+For branch-and-bound, describe your exploration order, define your bounding function clearly, and analyze the cost of computing the bound at a node. Do not include code in this section; provide clear reasoning and concise derivations in your own words.
+
+5) Deliverables
+1. Submit your source code for the three methods with the exact interface, a deterministic runner (script or notebook) that executes all experiments for both catalogs and all required capacities with at least five repetitions each, and saves raw timings and median summaries. (3 points)
+
+2. Submit the two required plots per catalog in both PNG and a vector format (PDF or SVG) with informative titles, labeled axes, and a legend. (2 points)
+
+3. Provide a short report of at most two pages that explains each method succinctly, presents your theoretical complexity derivations, describes the experimental setup, includes the two figures per catalog, and highlights the specific C₂ case where the greedy heuristic underperforms the exact solvers. (6 points)
+
+4. Finally, include a README with precise run commands, dependencies and versions, and the steps to reproduce your figures, including the number of repetitions and any fixed random seeds used for tie-breaking or ordering. (2 points)
