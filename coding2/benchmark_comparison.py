@@ -84,19 +84,19 @@ def benchmark_student_solution(text: str) -> dict:
     vectors = student.build_embeddings(terms)
     time_embed = time.perf_counter() - t1
     
-    # Paso 4: Grafo
+    # Paso 4: Grafo (actualizado al nuevo nombre)
     t1 = time.perf_counter()
-    G = student.build_graph(terms, vectors, k=5)
+    G = student.build_sparse_graph(terms, vectors, k=5)
     time_graph = time.perf_counter() - t1
     
-    # Paso 5: MST
+    # Paso 5: MST (actualizado al nuevo nombre)
     t1 = time.perf_counter()
-    T = student.minimum_spanning_structure(G)
+    T = student.compute_mst(G)
     time_mst = time.perf_counter() - t1
     
-    # Paso 6: Jerarquía
+    # Paso 6: Jerarquía (actualizado a Tree DP)
     t1 = time.perf_counter()
-    hierarchical, scores = student.semantic_hierarchy(T)
+    hierarchical, scores = student.semantic_hierarchy_tree_dp(T)
     time_hierarchy = time.perf_counter() - t1
     
     total_time = time.perf_counter() - t0
