@@ -2,77 +2,61 @@
 
 ## 1. Problema
 
-Dado un texto y un conjunto de términos relevantes, el objetivo es descubrir la estructura semántica del texto, identificando:
+Dado un texto y un conjunto de términos relevantes, el objetivo es descubrir la estructura semántica identificando:
 
 - El peso total de la estructura que conecta todos los términos
 - El término más jerárquico
 - Los cinco términos más centrales
 
-El reto principal es ir más allá de la frecuencia y capturar **relaciones semánticas** entre conceptos.
-
----
+El reto es ir más allá de la frecuencia y capturar relaciones semánticas entre conceptos.
 
 ## 2. Enfoque General
 
 La solución sigue un enfoque basado en grafos:
 
-1. Convertimos términos en vectores numéricos (embedding)
-2. Medimos similitud semántica entre términos
-3. Construimos un grafo con esas similitudes
-4. Extraemos su estructura mínima representativa (MST)
-5. Calculamos jerarquía semántica sobre esa estructura
+1. Convertir términos en vectores numéricos (embedding)
+2. Medir similitud semántica entre términos
+3. Construir un grafo con esas similitudes
+4. Extraer su estructura mínima representativa (MST)
+5. Calcular jerarquía semántica sobre esa estructura
 
-**En resumen:** `texto → vectores → grafo → árbol → jerarquía`
+En resumen: texto, vectores, grafo, árbol, jerarquía.
 
----
+## 3. Detección y Normalización
 
-## 3. Detección y Normalización de Términos
+Normalizamos el texto (minúsculas, sin acentos ni puntuación) y detectamos términos relevantes como nombres propios y siglas. Cada término se convierte en un nodo del grafo.
 
-Primero normalizamos el texto (minúsculas, sin acentos ni puntuación) y detectamos términos relevantes como nombres propios y siglas.
+## 4. Embedding
 
-Cada término detectado se convierte en un **nodo del grafo**.
-
----
-
-## 4. Embedding: la clave de la solución
-
-Cada término se representa mediante un **embedding TF-IDF basado en trigramas de caracteres**, normalizado a norma 1.
+Cada término se representa mediante un embedding TF-IDF basado en trigramas de caracteres, normalizado a norma 1.
 
 Elegimos este enfoque porque:
 
-- Funciona bien con nombres propios y siglas (ej: "Cristian Brokate")
-- No depende de vocabularios pre-entrenados como Word2Vec o BERT
-- Es determinista, reproducible y adecuado para textos especializados
+- Funciona con nombres propios y siglas que no están en vocabularios pre-entrenados
+- No depende de modelos externos como Word2Vec o BERT
+- Es determinista y reproducible
 
-👉 **El embedding define la geometría del problema:** determina qué tan "cerca" o "lejos" están dos términos y, por lo tanto, controla toda la estructura del grafo.
+El embedding define la geometría del problema: determina qué tan cerca o lejos están dos términos.
 
----
+## 5. Cálculo de Similitud
 
-## 5. Cálculo de Similitud y Cuello de Botella
+Calculamos la similitud coseno entre todos los pares de términos.
 
-Usando los embeddings, calculamos la **similitud coseno** entre todos los pares de términos.
+Complejidad: O(n² · d)
 
-**Complejidad:** `O(n² · d)`
+Este es el cuello de botella del pipeline, asumido en el enunciado. Para limitar el tamaño del grafo, conectamos cada término solo con sus k vecinos más cercanos.
 
-Este paso es el **principal cuello de botella** del pipeline y está explícitamente asumido en el enunciado.
+## 6. Árbol de Expansión Mínima
 
-Para limitar el tamaño del grafo, conectamos cada término solo con sus **k vecinos más cercanos exactos**, construyendo un grafo disperso sin perder exactitud.
-
----
-
-## 6. Árbol de Expansión Mínima (MST)
-
-Del grafo disperso obtenemos un **árbol de expansión mínima**, que:
+Del grafo disperso obtenemos un MST que:
 
 - Conecta todos los términos
 - Minimiza el peso total
 - Elimina conexiones redundantes
 
-Este árbol representa la **columna vertebral semántica** del texto.
+Este árbol representa la estructura semántica mínima del texto.
 
----
-
-## 7. Optimización Principal: Jerarquía con Tree DP
+## 7. Jerarquía con Tree DP
 
 La jerarquía semántica se define como:
 
@@ -80,66 +64,48 @@ La jerarquía semántica se define como:
 S(u) = Σᵥ dist(u, v)
 ```
 
-Es decir, la suma de distancias desde un nodo `u` hacia todos los demás nodos `v`.
+La suma de distancias desde un nodo u hacia todos los demás.
 
-### Solución naive
-Ejecutar Dijkstra desde cada nodo del MST → **O(n²)**
+La solución naive ejecuta Dijkstra desde cada nodo con costo O(n²). Nuestra optimización aprovecha que el MST es un árbol y aplica Tree DP con dos recorridos:
 
-### Nuestra optimización
-Aprovechando que el MST es un **árbol**, aplicamos **Tree Dynamic Programming** con dos recorridos:
-
-1. **Post-order:** calcular tamaños de subárbol
-2. **Pre-order:** propagar resultados usando la fórmula:
+1. Post-order: calcular tamaños de subárbol
+2. Pre-order: propagar resultados con la fórmula:
 
 ```
 S(hijo) = S(padre) + peso × (n - 2 × subtree_size)
 ```
 
-Esto reduce el cálculo de la jerarquía a **O(n)**, manteniendo exactitud total.
-
-👉 **Esta es la optimización clave del trabajo.**
-
----
+Esto reduce el cálculo a O(n). Esta es la optimización principal.
 
 ## 8. Resultados
 
 La solución produce:
 
-- El **peso total del MST**
-- El **término más jerárquico** (menor S(u))
-- El **top 5 de términos centrales**
+- Peso total del MST
+- Término más jerárquico (menor S(u))
+- Top 5 de términos centrales
 
-Estos resultados reflejan **importancia estructural**, no solo frecuencia.
+Estos resultados reflejan importancia estructural, no solo frecuencia.
 
----
+## 9. Complejidad
 
-## 9. Análisis de Complejidad
-
-| Etapa | Complejidad | Espacio |
-|-------|-------------|---------|
+| Etapa | Tiempo | Espacio |
+|-------|--------|---------|
 | Normalización | O(L) | O(L) |
-| Detección términos | O(L·n) | O(n) |
-| Embeddings TF-IDF | O(n·d) | O(n·d) |
-| Matriz similitud | **O(n²·d)** | O(n²) |
+| Detección | O(L·n) | O(n) |
+| Embeddings | O(n·d) | O(n·d) |
+| Similitud | O(n²·d) | O(n²) |
 | MST | O(m·log n) | O(n) |
-| Jerarquía Tree DP | **O(n)** | O(n) |
+| Jerarquía | O(n) | O(n) |
 
-**Término dominante:** `O(n²·d)` por el cálculo de similitudes.
-
----
+Término dominante: O(n²·d) por el cálculo de similitudes.
 
 ## 10. Conclusión
 
-- El **embedding** es la base semántica del método
-- El **cálculo de similitudes** es el cuello de botella esperado
-- El **MST** revela la estructura conceptual mínima
-- La **optimización con Tree DP** permite calcular jerarquía en O(n)
+- El embedding define la semántica del método
+- El cálculo de similitudes es el cuello de botella esperado
+- El MST revela la estructura conceptual mínima
+- Tree DP permite calcular jerarquía en O(n)
 
-👉 **La solución es exacta, eficiente y defendible académicamente.**
-
----
-
-### Frase final
-
-> *"Transformamos texto en geometría y usamos grafos para extraer la estructura semántica y la jerarquía conceptual del contenido."*
+La solución es exacta, eficiente y correcta.
 
