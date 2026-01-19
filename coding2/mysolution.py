@@ -192,10 +192,67 @@ def semantic_hierarchy_tree_dp(tree: nx.Graph) -> Tuple[str, Dict[str, float]]:
 
 
 # ============================================================
-# 8. Pipeline completo
+# 8. Visualización
 # ============================================================
 
-def run_pipeline(text: str, topk: int = 5):
+def visualize(G: nx.Graph, MST: nx.Graph, highlight: str = None):
+    """Visualiza el grafo disperso y el MST con heatmap de pesos."""
+    pos = nx.spring_layout(G, seed=42)
+    
+    # Obtener pesos para normalización
+    w_g = [G[u][v]["weight"] for u, v in G.edges()]
+    w_mst = [MST[u][v]["weight"] for u, v in MST.edges()]
+    
+    if not w_g and not w_mst:
+        print("No hay aristas para visualizar.")
+        return
+    
+    w_min = min(min(w_g, default=0), min(w_mst, default=0))
+    w_max = max(max(w_g, default=1), max(w_mst, default=1))
+    
+    if abs(w_max - w_min) < 1e-12:
+        w_min, w_max = 0.0, 1.0
+    
+    cmap = plt.cm.viridis
+    norm = mpl.colors.Normalize(vmin=w_min, vmax=w_max)
+    sm = mpl.cm.ScalarMappable(cmap=cmap, norm=norm)
+    sm.set_array([])
+    
+    # Colores de nodos
+    node_colors = [
+        "tab:red" if (highlight and n == highlight) else "tab:blue"
+        for n in G.nodes()
+    ]
+    
+    fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(14, 6))
+    
+    # Grafo disperso
+    ax1.set_title("Grafo Semántico Disperso (k-NN)")
+    nx.draw_networkx_nodes(G, pos, node_size=500, node_color=node_colors, ax=ax1)
+    nx.draw_networkx_labels(G, pos, font_size=8, ax=ax1)
+    edge_colors_g = [cmap(norm(G[u][v]["weight"])) for u, v in G.edges()]
+    nx.draw_networkx_edges(G, pos, edge_color=edge_colors_g, width=2, alpha=0.8, ax=ax1)
+    ax1.axis("off")
+    fig.colorbar(sm, ax=ax1, fraction=0.046, pad=0.04, label="Peso = 1 − similitud")
+    
+    # MST
+    ax2.set_title("Árbol de Expansión Mínima (MST)")
+    nx.draw_networkx_nodes(MST, pos, node_size=500, node_color=node_colors, ax=ax2)
+    nx.draw_networkx_labels(MST, pos, font_size=8, ax=ax2)
+    edge_colors_mst = [cmap(norm(MST[u][v]["weight"])) for u, v in MST.edges()]
+    nx.draw_networkx_edges(MST, pos, edge_color=edge_colors_mst, width=3, alpha=0.9, ax=ax2)
+    ax2.axis("off")
+    fig.colorbar(sm, ax=ax2, fraction=0.046, pad=0.04, label="Peso = 1 − similitud")
+    
+    plt.tight_layout()
+    plt.show()
+
+
+# ============================================================
+# 9. Pipeline completo
+# ============================================================
+
+def run_pipeline(text: str, topk: int = 5, visualize_graph: bool = True):
     raw_terms = extract_terms(text)
     stats = count_terms(text, raw_terms)
 
@@ -206,10 +263,59 @@ def run_pipeline(text: str, topk: int = 5):
     MST = compute_mst(G)
 
     hier, scores = semantic_hierarchy_tree_dp(MST)
+    
+    # Agregar frecuencia a los nodos
+    for lab in labels:
+        G.nodes[lab]["freq"] = stats[lab]["freq"]
+        G.nodes[lab]["first_pos"] = stats[lab]["first_pos"]
 
-    print("Término más jerárquico:", hier)
+    total_weight = sum(MST[u][v]["weight"] for u, v in MST.edges())
+
+    # Visualización
+    if visualize_graph:
+        visualize(G, MST, highlight=hier)
+
+    # Resultados
+    print("\n" + "=" * 60)
+    print("RESULTADOS")
+    print("=" * 60)
+    print(f"Términos detectados: {len(labels)}")
+    print(f"Peso total MST: {total_weight:.6f}")
+    print(f"Término más jerárquico: {hier}")
     print("\nTop 5 términos centrales:")
     for t, s in sorted(scores.items(), key=lambda x: x[1])[:5]:
-        print(f"{t:30s}  S={s:.4f}  freq={stats[t]['freq']}")
+        print(f"  {t:30s}  S={s:.4f}  freq={stats[t]['freq']}")
 
-    return G, MST, hier, scores
+    return G, MST, hier, scores, total_weight
+
+
+# ============================================================
+# 10. Ejemplo de uso
+# ============================================================
+
+if __name__ == "__main__":
+    TEXT = """
+    Unmasking information manipulation: A quantitative approach to detecting 
+    copy-pasta, rewording, and translation on social media.
+
+    Manon Richard, Lisa Giordani, Cristian Brokate, Jean Lienard.
+
+    Abstract. This study proposes a methodology for identifying three techniques 
+    used in foreign-operated information manipulation campaigns: copy-pasta, 
+    rewording, and translation. The approach, called the "3 Delta-space duplicate 
+    methodology", quantifies three aspects of messages: semantic meaning, 
+    grapheme-level wording, and language.
+
+    The method is validated using a synthetic dataset generated with ChatGPT and 
+    DeepL, and then applied to a Twitter Transparency dataset (2021) about 
+    Venezuelan actors. The method identifies all three types of inauthentic 
+    duplicates in the synthetic dataset and uncovers duplicates in the Twitter 
+    dataset across political, commercial, and entertainment contexts.
+
+    The analysis identifies political boosting, commercial messages for alcoholic 
+    beverages, and entertainment messages related to "The Walking Dead". 
+    Coordinated inauthentic behavior (CIB) refers to synchronized efforts to 
+    shape online discourse through repeated activity using AI tools.
+    """
+    
+    run_pipeline(TEXT, topk=5, visualize_graph=True)
