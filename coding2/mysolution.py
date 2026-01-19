@@ -10,9 +10,7 @@ import matplotlib.pyplot as plt
 import matplotlib as mpl
 
 
-# ============================================================
 # 1. Normalización
-# ============================================================
 
 def normalize_text(s: str) -> str:
     s = "".join(c for c in unicodedata.normalize("NFKD", s)
@@ -29,9 +27,7 @@ def normalize_term(s: str) -> str:
     return re.sub(r"\s+", " ", s).strip()
 
 
-# ============================================================
-# 2. Extracción simple de términos (nombres propios / siglas)
-# ============================================================
+# 2. Extracción de términos
 
 def extract_terms(text: str) -> List[str]:
     return re.findall(
@@ -40,9 +36,7 @@ def extract_terms(text: str) -> List[str]:
     )
 
 
-# ============================================================
-# 3. Conteo de frecuencia y primera aparición
-# ============================================================
+# 3. Conteo de frecuencia
 
 def count_terms(text: str, terms: List[str]) -> Dict[str, Dict]:
     text_norm = normalize_text(text)
@@ -59,9 +53,7 @@ def count_terms(text: str, terms: List[str]) -> Dict[str, Dict]:
     return stats
 
 
-# ============================================================
-# 4. Embeddings TF-IDF con trigramas de caracteres
-# ============================================================
+# 4. Embeddings TF-IDF
 
 def char_ngrams(s: str, n: int = 3) -> List[str]:
     s = s.replace(" ", "_")
@@ -94,9 +86,7 @@ def build_embeddings(terms: List[str]) -> np.ndarray:
     return X / norms
 
 
-# ============================================================
-# 5. Grafo k-NN exacto (similitud coseno)
-# ============================================================
+# 5. Grafo k-NN
 
 def build_sparse_graph(labels: List[str], V: np.ndarray, k: int = 5) -> nx.Graph:
     sim = V @ V.T
@@ -126,17 +116,13 @@ def build_sparse_graph(labels: List[str], V: np.ndarray, k: int = 5) -> nx.Graph
     return G
 
 
-# ============================================================
-# 6. Árbol de expansión mínima
-# ============================================================
+# 6. MST
 
 def compute_mst(G: nx.Graph) -> nx.Graph:
     return nx.minimum_spanning_tree(G, weight="weight")
 
 
-# ============================================================
-# 7. Jerarquía semántica con Tree DP (O(n))
-# ============================================================
+# 7. Jerarquía con Tree DP
 
 def semantic_hierarchy_tree_dp(tree: nx.Graph) -> Tuple[str, Dict[str, float]]:
     root = next(iter(tree.nodes))
@@ -191,9 +177,7 @@ def semantic_hierarchy_tree_dp(tree: nx.Graph) -> Tuple[str, Dict[str, float]]:
     return best, S
 
 
-# ============================================================
 # 8. Visualización
-# ============================================================
 
 def visualize(G: nx.Graph, MST: nx.Graph, highlight: str = None):
     """Visualiza el grafo disperso y el MST con heatmap de pesos."""
@@ -248,9 +232,7 @@ def visualize(G: nx.Graph, MST: nx.Graph, highlight: str = None):
     plt.show()
 
 
-# ============================================================
-# 9. Pipeline completo
-# ============================================================
+# 9. Pipeline
 
 def run_pipeline(text: str, topk: int = 5, visualize_graph: bool = True):
     raw_terms = extract_terms(text)
@@ -276,9 +258,7 @@ def run_pipeline(text: str, topk: int = 5, visualize_graph: bool = True):
         visualize(G, MST, highlight=hier)
 
     # Resultados
-    print("\n" + "=" * 60)
-    print("RESULTADOS")
-    print("=" * 60)
+    print("\nResultados:")
     print(f"Términos detectados: {len(labels)}")
     print(f"Peso total MST: {total_weight:.6f}")
     print(f"Término más jerárquico: {hier}")
@@ -289,9 +269,7 @@ def run_pipeline(text: str, topk: int = 5, visualize_graph: bool = True):
     return G, MST, hier, scores, total_weight
 
 
-# ============================================================
-# 10. Ejemplo de uso
-# ============================================================
+# 10. Main
 
 if __name__ == "__main__":
     TEXT = """
