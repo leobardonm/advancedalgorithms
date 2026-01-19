@@ -1,0 +1,20 @@
+Exercise — Semantic Graph Construction from Text
+You are given a text T of length L and a list of n relevant terms
+{t₁, …, tₙ}. The goal is to uncover semantic structure by combining string processing, vector representations, and graph analysis.
+
+Begin by normalizing both the text and the terms: convert to lowercase, remove accents and punctuation, and collapse multiple spaces. Detect exact occurrences of each term in the text using word-boundary matching. For every detected term, store its frequency and the index of its first occurrence.
+The time complexity of this stage is O(L + Σ|tᵢ|) and the space complexity is O(L + n).
+
+Next, construct a vector representation for every term that appears at least once in the text. You may use semantic embeddings or a character-based vector representation such as n-grams. Let d denote the embedding dimension. All vectors must be normalized to unit length.
+This stage runs in O(n · d) time and requires O(n · d) space.
+
+Using these vectors, define the similarity between two terms as their cosine similarity and convert it into an edge weight
+w(i, j) = 1 − cos(vᵢ, vⱼ). Build a sparse weighted graph by connecting each term to a limited number of its most similar neighbors, ensuring the graph remains connected. Computing similarities dominates this stage with O(n² · d) time, while storing the graph requires O(n · k) space, where k ≪ n.
+
+From this graph, compute a spanning structure that connects all terms with minimum total weight. Let m ≈ n · k be the number of edges. The time complexity of this step is O(m log n) and the space complexity is O(n + m).
+
+Finally, define a notion of semantic hierarchy using the spanning structure. For each term u, compute the sum of distances to all other terms in the structure, S(u) = Σᵥ dist(u, v). The most hierarchical term is the one minimizing S(u). Computing this measure requires O(n²) time and O(n) additional space.
+
+The output must include the total weight of the spanning structure, the most hierarchical term, and the five most central terms according to S(u).
+
+In your analysis, justify your design choices, identify the dominant complexity term of the pipeline, explain why sparsifying the graph is necessary, and argue why term frequency alone does not capture semantic importance.
